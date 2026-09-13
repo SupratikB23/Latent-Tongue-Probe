@@ -190,7 +190,7 @@ def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device,
         with open(out / "run_meta.json", "w", encoding="utf-8") as f:
             json.dump({
                 "model": name, "seed": seed, "n_layers": n_layers, "d_model": d_model, "primary_layer": primary,
-                "ablation_layers": abl_layers, "device": str(device),
+                "ablation_layers": abl_layers, "device": str(device), "dtype": str(dtype),
                 "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None,
                 "torch": torch.__version__, "python": platform.python_version(),
                 "seed_seconds": round(time.time() - t_seed, 1), "model_seconds_so_far": round(time.time() - t_model, 1),
@@ -217,10 +217,12 @@ def main() -> None:
 
     cfg = load_config(args.config)
     device = pick_device(args.device or cfg["device"])
-    dtype = pick_dtype(args.dtype or cfg["dtype"], device)
     items = load_items(cfg)
-    print(f"device={device} dtype={dtype} items={len(items)}")
+    print(f"device={device} items={len(items)}")
     for name in args.models or cfg["models"]:
+        # precedence: --dtype > model_dtype[name] > dtype
+        dtype = pick_dtype(args.dtype or cfg.get("model_dtype", {}).get(name, cfg["dtype"]), device)
+        print(f"{name}: dtype={dtype}")
         run_model(name, cfg, items, args.seed or cfg["seeds"], device, dtype, args.batch_size or cfg["batch_size"],
                   args.baseline_only)
     if not (args.skip_analyze or args.baseline_only):
