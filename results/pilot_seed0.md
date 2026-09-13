@@ -82,4 +82,34 @@ Code changes (no threshold changed):
 - `results.csv` now also records `pair_acc` per row. The verdict still uses item `acc` until a deviation is logged below.
 - `run_all.py --baseline-only` caches activations + un-ablated scores and stops, for cheap checks of new models.
 
-**Proposed deviation (not yet adopted):** switch the gate and all drops from item accuracy to pair accuracy, and move to the pre-registered 1.7B fallback models. Adopt only after (a) the Bengali reversal in finding 3 is explained and (b) `--baseline-only` on the 1.7B models shows pair_acc ≥ 0.65 for side/informative in bn and en.
+**Proposed deviation (superseded by Amendment 1 below):** switch the gate and all drops from item accuracy to pair accuracy, and move to the pre-registered 1.7B fallback models. Adopt only after (a) the Bengali reversal in finding 3 is explained and (b) `--baseline-only` on the 1.7B models shows pair_acc ≥ 0.65 for side/informative in bn and en.
+
+---
+
+## 1.7B fallback diagnostics (14 Sep 2026, `--baseline-only --dtype bfloat16`)
+
+| model | side/inf bn · en (pair) | side/neutral bn | side/inf hi · neutral hi | gender/inf bn · en |
+|---|---|---|---|---|
+| bloom-1b7 | **0.96 · 0.98** | **0.89** | 0.31 · 0.03 | 1.00 · 1.00 |
+| xglm-1.7B | 0.08 · 0.47 | 0.24 | 0.47 · 0.47 | 0.30 · 0.61 |
+
+Findings:
+1. **BLOOM-1b7 passes the gate and is the first model that gets কাকা/মামা right from the word alone** (neutral bn 0.89, where BLOOM-560m gave 0.12).
+2. **Answering from the kin word alone flips between languages across checkpoints.** BLOOM-560m reverses bn and is correct on hi. BLOOM-1b7 is correct on bn and reverses hi. XGLM-564M reverses bn and is correct on hi. The same stimuli give opposite signs in different models, which points away from a Bengali-specific stimulus bug and toward model-specific associations. A native review of the bn and hi wording is still required.
+3. **XGLM fails at both sizes.** At 1.7B even English with context is at chance (0.47). It is dropped as a *task-gate failure*, not because of any ablation outcome, and this is reported as a result.
+
+## Amendment 1 (adopted; `configs/amended.yaml`)
+
+Decided from the no-ablation diagnostics above. No ablation result was used. `configs/default.yaml` stays untouched as the original pre-registration.
+
+| | pre-registered (`default.yaml`) | amended (`amended.yaml`) | reason |
+|---|---|---|---|
+| readout | item accuracy | **minimal-pair accuracy** | constant answer bias (`pick0` ≈ 0 or 1) masks what the input changes |
+| models | XGLM-564M, BLOOM-560m | **BLOOM-560m, BLOOM-1b7** | only BLOOM passes the gate; the fallback named in PRD §9 was the 1.7B size |
+| dtype | float32 | bfloat16 | 1.7B must fit in 8 GB |
+| thresholds, primary cell, seeds, controls | — | **unchanged** | |
+
+Consequences, fixed now:
+- Cross-architecture replication is lost. The model pair is a **scale pair within one family**. Claims are limited to BLOOM.
+- The Hindi language-identity control is only interpretable where Hindi passes the gate. `analyze.py` now prints "not interpretable" otherwise, which is expected for BLOOM-1b7.
+- The 560m-vs-1b7 difference in bare-word bn accuracy (0.12 vs 0.89) is reported descriptively. No new hypothesis is added for it.
