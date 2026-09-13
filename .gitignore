@@ -8,3 +8,4 @@ results_smoke/
 *.pt
 results_smoke_log.txt
 outreach/
+results_smoke_pair/
