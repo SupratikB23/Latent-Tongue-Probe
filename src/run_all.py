@@ -9,6 +9,8 @@ Per-seed raw numbers go to results/raw/<model>/seed<k>/, then analyze.py aggrega
 """
 from __future__ import annotations
 
+import sentencepiece  # noqa: F401  must load before torch/sklearn: importing it after them crashes on Windows
+
 import argparse
 import json
 import platform
