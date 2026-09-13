@@ -48,16 +48,28 @@ def cached(path, ids, compute):
     return blob
 
 
+def pair_accuracy(prefer1: np.ndarray, labels: np.ndarray, pair_ids: np.ndarray) -> float:
+    """Share of minimal pairs where the label-1 item prefers answer 1 more than its label-0 partner.
+    A constant answer preference cancels; identical prompts tie and count 0.5."""
+    by_pair: dict = {}
+    for p, y, v in zip(pair_ids, labels, prefer1):
+        by_pair.setdefault(p, {})[int(y)] = v
+    d = np.array([v[1] - v[0] for v in by_pair.values() if len(v) == 2])
+    return float(np.mean(np.where(np.abs(d) < 1e-6, 0.5, d > 0))) if len(d) else float("nan")
+
+
 def group_rows(logp: np.ndarray, idx: np.ndarray, meta: dict, row: dict) -> list[dict]:
     y = meta["label"][idx]
     r = np.arange(len(idx))
     margin = logp[idx][r, y] - logp[idx][r, 1 - y]
+    prefer1 = logp[idx, 1] - logp[idx, 0]
     out = []
     for ctx in CONTEXTS:
         for lang in np.unique(meta["lang"][idx]):
             m = (meta["context"][idx] == ctx) & (meta["lang"][idx] == lang)
             if m.any():
                 out.append({**row, "context": ctx, "eval_lang": lang, "acc": float((margin[m] > 0).mean()),
+                            "pair_acc": pair_accuracy(prefer1[m], y[m], meta["pair_id"][idx][m]),
                             "logit_diff": float(margin[m].mean()), "n": int(m.sum())})
     return out
 
@@ -98,7 +110,8 @@ def run_probes(X, meta, train, test, cfg, model_name, seed, n_layers, abl_layers
     return rows, dirs
 
 
-def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device, dtype, batch_size: int) -> None:
+def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device, dtype, batch_size: int,
+              baseline_only: bool = False) -> None:
     t_model = time.time()
     model, tok = load_model(name, device, dtype, texts=[it["text"] + a for it in items for a in it["answers"]])
     n_layers = len(get_blocks(model))
@@ -120,7 +133,13 @@ def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device,
     base_logp = cached(cache / "baseline_logp.pt", ids,
                        lambda: {"ids": ids, "logp": torch.from_numpy(score(model, sset, device, batch_size))})
     base_logp = base_logp["logp"].numpy()
-    meta = {k: np.array([it[k] for it in items]) for k in ("concept", "context", "lang", "label", "name_id")}
+    if baseline_only:
+        print(f"{name}: baseline cached -> {cache}  (inspect with: python src/diagnose_baseline.py)")
+        del model
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        return
+    meta = {k: np.array([it[k] for it in items]) for k in ("concept", "context", "lang", "label", "name_id", "pair_id")}
     C, iters = cfg["probe"]["C"], cfg["probe"]["max_iter"]
     print(f"{name}: {n_layers} blocks, d={d_model}, primary layer {primary}, ablation layers {abl_layers}")
 
@@ -187,17 +206,21 @@ def main() -> None:
     ap.add_argument("--models", nargs="+", help="override the model list")
     ap.add_argument("--device", help="cuda | cuda:1 | cpu | mps; default: config (auto)")
     ap.add_argument("--batch-size", type=int)
+    ap.add_argument("--dtype", choices=["float32", "float16", "bfloat16"], help="default: config")
     ap.add_argument("--skip-analyze", action="store_true")
+    ap.add_argument("--baseline-only", action="store_true",
+                    help="cache activations + un-ablated scores, then stop (for diagnose_baseline.py)")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
     device = pick_device(args.device or cfg["device"])
-    dtype = pick_dtype(cfg["dtype"], device)
+    dtype = pick_dtype(args.dtype or cfg["dtype"], device)
     items = load_items(cfg)
     print(f"device={device} dtype={dtype} items={len(items)}")
     for name in args.models or cfg["models"]:
-        run_model(name, cfg, items, args.seed or cfg["seeds"], device, dtype, args.batch_size or cfg["batch_size"])
-    if not args.skip_analyze:
+        run_model(name, cfg, items, args.seed or cfg["seeds"], device, dtype, args.batch_size or cfg["batch_size"],
+                  args.baseline_only)
+    if not (args.skip_analyze or args.baseline_only):
         analyze.run(cfg)
 
 

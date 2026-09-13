@@ -152,7 +152,8 @@ def figure2(probe, cfg, path) -> None:
                 for ctx, dash in (("informative", "-"), ("neutral", "--")):
                     sub = df[(df.test_lang == lang) & (df.test_context == ctx) & (df.control == "none")]
                     curve = sub.groupby("layer").acc.mean()
-                    ax.plot(curve.index, curve.values, dash, color=SERIES[k], linewidth=2,
+                    # widths shrink with k so a line drawn later never fully hides one at the same value
+                    ax.plot(curve.index, curve.values, dash, color=SERIES[k], linewidth=4.5 - 1.5 * k,
                             label=f"{LANG_NAME.get(lang, lang)}, {ctx} context")
             shuf = df[df.control == "shuffled"].groupby("layer").acc.mean()
             ax.plot(shuf.index, shuf.values, ":", color=MUTED, linewidth=2, label="shuffled-label control")

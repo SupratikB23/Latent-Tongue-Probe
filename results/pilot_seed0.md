@@ -56,3 +56,30 @@ Running seeds 1–4 on these models can only give INCONCLUSIVE, so don't spend t
 - If the readout gets changed (for example, a calibrated score comparing each item against its minimal-pair partner), it's a **deviation from the spec**. Log it here with the reason *before* rerunning, and state it in SPEC.md.
 
 Minor: the `hf_xet not installed` warning is harmless (downloads fall back to HTTP). `pip install hf_xet` would speed up downloads.
+
+---
+
+## Diagnosis (14 Sep 2026, `src/diagnose_baseline.py`, all 20 names, no ablation)
+
+`pick0` = share of items where answer 0 wins. `pair_acc` = minimal-pair accuracy (a constant answer preference cancels out; 0.50 = chance).
+
+| model | concept / context | bn acc · pick0 · pair | en acc · pick0 · pair | hi acc · pick0 · pair |
+|---|---|---|---|---|
+| bloom-560m | side / informative | 0.56 · 0.90 · **0.97** | 0.55 · 0.81 · **0.98** | 0.61 · 0.27 · 0.99 |
+| bloom-560m | side / neutral | 0.47 · 0.96 · **0.12** | 0.50 · 0.91 · 0.50 | 0.50 · 0.55 · 0.47 |
+| xglm-564M | side / informative | 0.43 · 0.07 · **0.00** | 0.50 · 1.00 · **0.93** | 0.54 · 0.74 · 0.76 |
+| xglm-564M | side / neutral | 0.50 · 0.00 · **0.06** | 0.50 · 1.00 · 0.50 | 0.50 · 0.95 · 0.99 |
+| bloom-560m | gender / informative | 0.50 · 1.00 · 1.00 | 0.87 · 0.51 · 1.00 | 0.59 · 0.87 · 1.00 |
+| xglm-564M | gender / informative | 0.50 · 1.00 · 0.90 | 0.68 · 0.82 · 1.00 | 0.50 · 1.00 · 1.00 |
+
+Findings:
+1. **Answer bias is confirmed.** `pick0` is near 0 or 1 in most cells. Item accuracy mostly measures which answer the model prefers.
+2. **Pair accuracy recovers the signal where the model uses context.** On BLOOM side/informative it passes the 0.65 gate in bn (0.97) and en (0.98). XGLM passes in en (0.93) but not in bn (0.00).
+3. **Bengali side is systematically reversed.** Neutral context gives 0.12 (BLOOM) and 0.06 (XGLM), and XGLM informative gives 0.00. The মামা item leans toward "বাবার" more than the কাকা item does. That is a consistent effect, not noise, but both models flip it and Hindi doesn't (XGLM hi neutral 0.99). **Unexplained.** Before trusting any Bengali number, check whether it's a stimulus/tokenization artifact (e.g. surface overlap between মামা and মায়ের, or the answer word in the question) or genuine model behavior.
+4. **The probe figure is saturated and partly hidden.** Informative-context probes sit at 1.0 at nearly every block, in English too (the English "uncle" token carries the context side from block 0). Bengali curves were drawn underneath the Hindi/English lines. Fixed in `analyze.py` (line widths now differ). At 1.0, decodability can't separate the hypotheses; the transfer rows in `probe.csv` (train bn → test en) are the informative ones.
+
+Code changes (no threshold changed):
+- `results.csv` now also records `pair_acc` per row. The verdict still uses item `acc` until a deviation is logged below.
+- `run_all.py --baseline-only` caches activations + un-ablated scores and stops, for cheap checks of new models.
+
+**Proposed deviation (not yet adopted):** switch the gate and all drops from item accuracy to pair accuracy, and move to the pre-registered 1.7B fallback models. Adopt only after (a) the Bengali reversal in finding 3 is explained and (b) `--baseline-only` on the 1.7B models shows pair_acc ≥ 0.65 for side/informative in bn and en.
