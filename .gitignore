@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+cache/
+cache_smoke/
+results_smoke/
+*.pt
+results_smoke_log.txt
+outreach/

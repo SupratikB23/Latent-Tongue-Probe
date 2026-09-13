@@ -1,0 +1,41 @@
+# Pre-registered configuration. Thresholds are fixed before any run; do not tune them on results.
+
+stimuli: data/stimuli.jsonl
+cache_dir: cache
+results_dir: results
+
+models:
+  - facebook/xglm-564M      # 24 blocks, d=1024, Bengali + Hindi in pretraining
+  - bigscience/bloom-560m   # 24 blocks, d=1024, Bengali + Hindi in pretraining
+
+concepts: [side, gender]    # side = hypothesis; gender = matched-concept control; side_aunt = backup
+langs: [bn, hi, en]
+source_lang: bn             # language the concept direction is fitted on
+target_lang: en             # language that does not lexicalize the distinction
+identity_lang: hi           # second language that does lexicalize it (language-identity control)
+
+seeds: [0, 1, 2, 3, 4]      # seed controls the name-disjoint split and the random control subspace
+n_test_names: 6             # of 20 names; 14 train / 6 test
+
+device: auto                # cuda if available, else mps, else cpu
+dtype: float32              # fits easily in 8 GB (RTX 3070) and 16 GB (Kaggle T4/P100)
+batch_size: 32
+
+probe:
+  C: 1.0
+  max_iter: 2000
+
+ablation:
+  mode: mean                # mean: h - ((h - mu_lang) V) V^T ; zero: h - (h V) V^T
+  primary_layer: mid        # n_layers // 2 = block 12 for both models; fixed in advance, not selected on results
+  layer_stride: 2           # secondary layer sweep
+  primary_rank: 1
+  extra_ranks: [4]          # sensitivity analysis, primary layer only
+
+thresholds:                 # accuracy fractions (0.15 = 15 points)
+  gate_clean_acc: 0.65      # un-ablated accuracy needed in source and target language to interpret drops
+  support_gap: 0.15         # drop(bn) - drop(en) under the bn direction
+  falsify_gap: 0.05
+  random_max_drop: 0.03
+  specificity_min: 0.03     # drop(bn; concept dir) - drop(bn; random dir)
+  matched_margin: 0.05      # gender-concept gap must stay this far below the side-concept gap
