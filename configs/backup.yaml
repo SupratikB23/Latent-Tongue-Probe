@@ -1,0 +1,49 @@
+# Backup concept (PRD §4.1, CLAUDE.md): side_aunt runs because `side` was flat in BLOOM-1b7 (amended seed 0).
+# Pre-specified contingency, reported separately. It cannot change the primary `side` verdict.
+# Identical to configs/amended.yaml except concept, cache and results directories.
+#   side_aunt: bn পিসি/মাসি, hi बुआ/मौसी, en aunt/aunt  (father's vs mother's sister)
+
+stimuli: data/stimuli.jsonl
+cache_dir: cache_backup
+results_dir: results_backup
+
+models:
+  - bigscience/bloom-560m
+  - bigscience/bloom-1b7
+
+readout: pair_acc
+primary_concept: side_aunt
+
+concepts: [side_aunt, gender]
+langs: [bn, hi, en]
+source_lang: bn
+target_lang: en
+identity_lang: hi
+
+seeds: [0, 1, 2, 3, 4]
+n_test_names: 6
+
+device: auto
+dtype: bfloat16
+model_dtype:
+  bigscience/bloom-560m: float32
+batch_size: 16
+
+probe:
+  C: 1.0
+  max_iter: 2000
+
+ablation:
+  mode: mean
+  primary_layer: mid
+  layer_stride: 2
+  primary_rank: 1
+  extra_ranks: [4]
+
+thresholds:
+  gate_clean_acc: 0.65
+  support_gap: 0.15
+  falsify_gap: 0.05
+  random_max_drop: 0.03
+  specificity_min: 0.03
+  matched_margin: 0.05
