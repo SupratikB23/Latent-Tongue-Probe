@@ -24,6 +24,7 @@ SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3, validated a
 INK, INK2, MUTED, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#fcfcfb"
 LANG_NAME = {"bn": "Bengali", "hi": "Hindi", "en": "English"}
 READOUT = "acc"  # accuracy column the decision rule uses; set from cfg["readout"] in run()
+PRIMARY = "side"  # concept under test; set from cfg["primary_concept"] in run(). "gender" is always the matched control
 
 
 def collect(results_dir, name: str) -> pd.DataFrame:
@@ -51,9 +52,9 @@ def drops(abl: pd.DataFrame, model: str, concept: str, layer: int, rank: int) ->
 
 def metrics_for(abl: pd.DataFrame, model: str, cfg: dict, layer: int, rank: int) -> dict[str, pd.Series]:
     s, tg, idl = cfg["source_lang"], cfg["target_lang"], cfg["identity_lang"]
-    clean = abl[(abl.model == model) & (abl.concept == "side") & (abl.context == "informative")
+    clean = abl[(abl.model == model) & (abl.concept == PRIMARY) & (abl.context == "informative")
                 & (abl.direction == "none")].pivot_table(index="seed", columns="eval_lang", values=READOUT)
-    side = drops(abl, model, "side", layer, rank)
+    side = drops(abl, model, PRIMARY, layer, rank)
     m = {
         "clean_acc_src": clean[s],
         "clean_acc_tgt": clean[tg],
@@ -112,8 +113,8 @@ def figure1(abl, cfg, meta, verdicts, path) -> None:
     fig.patch.set_facecolor(SURFACE)
     for ax, model in zip(axes[0], models):
         layer = meta[model]["primary_layer"]
-        side = drops(abl, model, "side", layer, rank)
-        bars = [(f"{LANG_NAME.get(s, s)} side direction", side, s),
+        side = drops(abl, model, PRIMARY, layer, rank)
+        bars = [(f"{LANG_NAME.get(s, s)} {PRIMARY} direction", side, s),
                 ("random direction", side, "random")]
         if "gender" in set(abl.concept):
             bars.append((f"{LANG_NAME.get(s, s)} gender direction (matched control)",
@@ -174,8 +175,9 @@ def figure2(probe, cfg, path) -> None:
 
 
 def run(cfg: dict) -> None:
-    global READOUT
+    global READOUT, PRIMARY
     READOUT = cfg.get("readout", "acc")
+    PRIMARY = cfg.get("primary_concept", "side")
     out = resolve(cfg["results_dir"])
     abl, probe, erasure = collect(out, "ablation"), collect(out, "probe"), collect(out, "erasure")
     if abl.empty:
@@ -189,7 +191,7 @@ def run(cfg: dict) -> None:
     t, rank = cfg["thresholds"], cfg["ablation"]["primary_rank"]
     summary, lines, verdicts, gap_rows = [], [], {}, []
     lines += ["# Verdict", "",
-              f"Primary cell: concept `side`, informative context, primary block, rank {rank}, "
+              f"Primary cell: concept `{PRIMARY}`, informative context, primary block, rank {rank}, "
               f"direction fitted on `{cfg['source_lang']}`. Readout `{READOUT}`. Values are mean ± std over seeds, in accuracy points.", ""]
     for model in dict.fromkeys(abl.model):
         layer = meta[model]["primary_layer"]
