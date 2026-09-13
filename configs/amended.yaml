@@ -1,0 +1,48 @@
+# Amendment 1 to configs/default.yaml (the original pre-registration, kept unchanged).
+# Fixed on 14 Sep 2026 from no-ablation diagnostics only, BEFORE any ablation result was
+# interpreted. Reasons: results/pilot_seed0.md. Thresholds are identical to default.yaml.
+#   1. readout: item accuracy -> minimal-pair accuracy (removes constant answer bias)
+#   2. models: XGLM-564M, XGLM-1.7B fail the task gate under both readouts; BLOOM-560m + BLOOM-1b7 pass it
+#   3. dtype: bfloat16 so the 1.7B model fits the 8 GB RTX 3070
+
+stimuli: data/stimuli.jsonl
+cache_dir: cache
+results_dir: results_amended
+
+models:
+  - bigscience/bloom-560m   # 24 blocks, d=1024
+  - bigscience/bloom-1b7    # 24 blocks, d=2048
+
+readout: pair_acc
+
+concepts: [side, gender]
+langs: [bn, hi, en]
+source_lang: bn
+target_lang: en
+identity_lang: hi           # reported only where hi passes the gate (BLOOM-1b7 reverses Hindi side)
+
+seeds: [0, 1, 2, 3, 4]
+n_test_names: 6
+
+device: auto
+dtype: bfloat16
+batch_size: 16
+
+probe:
+  C: 1.0
+  max_iter: 2000
+
+ablation:
+  mode: mean
+  primary_layer: mid
+  layer_stride: 2
+  primary_rank: 1
+  extra_ranks: [4]
+
+thresholds:                 # unchanged from default.yaml
+  gate_clean_acc: 0.65
+  support_gap: 0.15
+  falsify_gap: 0.05
+  random_max_drop: 0.03
+  specificity_min: 0.03
+  matched_margin: 0.05
