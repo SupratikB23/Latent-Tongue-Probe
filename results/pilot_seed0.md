@@ -142,3 +142,30 @@ Next steps (fixed before looking at anything else):
 - Run `python src/diagnose_baseline.py` on the bfloat16 caches. If 560m en side/informative pair_acc falls well below 0.98 on all names, bfloat16 is the cause, and 560m returns to float32 (Amendment 2, a gate-only reason, logged before rerunning).
 - BLOOM-1b7 passes the gate, so run its seeds 1–4 unchanged to get the pre-registered 5-seed verdict with error bars.
 - The layer sweep (`gap_by_layer.csv`) may be described as exploratory in the write-up. It cannot change the verdict.
+
+---
+
+## bfloat16 check (14 Sep 2026, `diagnose_baseline.py` on the amended caches, all 20 names)
+
+| cell (pair_acc) | bloom-560m float32 (earlier) | bloom-560m bfloat16 | bloom-1b7 bfloat16 |
+|---|---|---|---|
+| side / informative / bn | 0.97 | 0.98 | 0.96 |
+| **side / informative / en** | **0.98** | **0.55** | 0.98 |
+| side / neutral / bn | 0.12 | 0.17 | 0.89 |
+| side / informative / hi | 0.99 | 0.96 | 0.32 |
+| gender / informative / en | 1.00 | 0.75 | 1.00 |
+
+**Confirmed: bfloat16 breaks BLOOM-560m in English** (side 0.98 → 0.55, gender 1.00 → 0.75). Bengali and Hindi barely move. The English margins in this model are small enough to be lost to bfloat16 rounding. BLOOM-1b7 is unchanged between its two bfloat16 caches and passes the gate comfortably. A float32 check of 1b7 isn't feasible in 8 GB, which is a stated limitation.
+
+## Amendment 2 (adopted; `configs/amended.yaml`)
+
+- BLOOM-560m returns to **float32** (`model_dtype`). BLOOM-1b7 stays bfloat16. The reason is gate-only: the no-ablation baseline changed, not an ablation result. The seed-0 BLOOM-560m verdict above (INCONCLUSIVE, en 0.59) is void and gets overwritten.
+- `run_meta.json` now records the dtype of every run.
+
+## Backup concept triggered (`configs/backup.yaml`)
+
+`side` was flat in BLOOM-1b7 on seed 0 (specificity 0.0, G 2.5). The pre-specified rule (CLAUDE.md, PRD §4.1) says `side_aunt` (পিসি/মাসি, बुआ/मौसी, aunt/aunt) runs in that case. It uses the same models, readout, thresholds and seeds, with results in `results_backup/`. This decision depended on an outcome, but the contingency was written down before any run. The backup is reported separately and **cannot change the primary `side` verdict**.
+
+## Unattended run
+
+`scripts/overnight.ps1`: (1) amended 5 seeds, both models → (2) diagnostic table → (3) backup concept. Estimated ~3.5–4 h from the measured seed times (560m float32 ~8 min/seed, 1b7 ~10.5 min/seed, per concept config).
