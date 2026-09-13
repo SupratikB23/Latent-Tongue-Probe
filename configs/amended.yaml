@@ -4,6 +4,8 @@
 #   1. readout: item accuracy -> minimal-pair accuracy (removes constant answer bias)
 #   2. models: XGLM-564M, XGLM-1.7B fail the task gate under both readouts; BLOOM-560m + BLOOM-1b7 pass it
 #   3. dtype: bfloat16 so the 1.7B model fits the 8 GB RTX 3070
+# Amendment 2 (14 Sep 2026, gate-only reason): BLOOM-560m back to float32. In bfloat16 its English
+#   side/informative pair_acc fell from 0.98 to 0.55 on the no-ablation baseline (tiny margins lost to rounding).
 
 stimuli: data/stimuli.jsonl
 cache_dir: cache
@@ -26,6 +28,8 @@ n_test_names: 6
 
 device: auto
 dtype: bfloat16
+model_dtype:
+  bigscience/bloom-560m: float32   # Amendment 2
 batch_size: 16
 
 probe:
