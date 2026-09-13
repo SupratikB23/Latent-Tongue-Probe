@@ -113,3 +113,32 @@ Consequences, fixed now:
 - Cross-architecture replication is lost. The model pair is a **scale pair within one family**. Claims are limited to BLOOM.
 - The Hindi language-identity control is only interpretable where Hindi passes the gate. `analyze.py` now prints "not interpretable" otherwise, which is expected for BLOOM-1b7.
 - The 560m-vs-1b7 difference in bare-word bn accuracy (0.12 vs 0.89) is reported descriptively. No new hypothesis is added for it.
+
+---
+
+## Amended run, seed 0 (14 Sep 2026, `configs/amended.yaml --seed 0`)
+
+Runtime on the RTX 3070 (bfloat16): BLOOM-560m 258 s per seed, BLOOM-1b7 632 s per seed. Test set = 6 names, 60 pairs per cell, so pair_acc moves in steps of 1.7 points.
+
+| metric (pts unless clean) | bloom-1b7 | bloom-560m |
+|---|---|---|
+| clean pair_acc bn / en / hi | 1.00 / 0.97 / 0.24 | 0.97 / **0.59** / 0.97 |
+| drop bn (v_bn) | 0.83 | −1.67 |
+| drop en (v_bn) | −1.67 | 5.83 |
+| drop bn (random) | 0.83 | 1.67 |
+| gap G | 2.50 | −7.50 |
+| specificity | 0.00 | −3.33 |
+| gap_matched (gender) | 0.00 | 8.33 |
+| rank-4 gap / random drop | 3.3 / 0.0 | 3.3 / −1.7 |
+| **verdict** | **FALSIFIED** (F1, F2, F3) | **INCONCLUSIVE** (gate: en 0.59) |
+
+Reading, one seed, not final:
+
+1. **BLOOM-1b7: ablating the Bengali side direction changes nothing, in any language.** Bengali itself drops 0.8 points, the same as a random direction. So the result is not "shared encoding" in the sense of the Bengali direction also hurting English. The Bengali direction doesn't hurt Bengali either. This is the "decodable but not used" outcome listed in PRD §2. The probe finds the direction at 1.0, but removing it at block 12 doesn't affect the answer. Rank 4 gives the same picture.
+2. **F1 and F2 decide the verdict. F3 fires vacuously.** F3 checks gap_matched ≥ G − 5, which is automatically true when G ≈ 0. It is meant to catch an artifact when there *is* a gap. This is a weakness in the pre-registered rule, noted here and not "fixed", since the verdict doesn't depend on it.
+3. **BLOOM-560m fails the gate in English (0.59), although the float32 diagnostic gave 0.98 on all names.** Likely cause: English margins are tiny for this model (item logit_diff ≈ 0.08), so bfloat16 rounding flips many pair comparisons. Not yet verified. See next steps.
+
+Next steps (fixed before looking at anything else):
+- Run `python src/diagnose_baseline.py` on the bfloat16 caches. If 560m en side/informative pair_acc falls well below 0.98 on all names, bfloat16 is the cause, and 560m returns to float32 (Amendment 2, a gate-only reason, logged before rerunning).
+- BLOOM-1b7 passes the gate, so run its seeds 1–4 unchanged to get the pre-registered 5-seed verdict with error bars.
+- The layer sweep (`gap_by_layer.csv`) may be described as exploratory in the write-up. It cannot change the verdict.
