@@ -23,6 +23,7 @@ from utils import load_config, resolve  # noqa: E402
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3, validated all-pairs
 INK, INK2, MUTED, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#fcfcfb"
 LANG_NAME = {"bn": "Bengali", "hi": "Hindi", "en": "English"}
+READOUT = "acc"  # accuracy column the decision rule uses; set from cfg["readout"] in run()
 
 
 def collect(results_dir, name: str) -> pd.DataFrame:
@@ -42,20 +43,21 @@ def run_meta(results_dir) -> dict:
 def drops(abl: pd.DataFrame, model: str, concept: str, layer: int, rank: int) -> pd.DataFrame:
     """Per-seed accuracy drop, columns (direction, eval_lang), informative context."""
     df = abl[(abl.model == model) & (abl.concept == concept) & (abl.context == "informative")]
-    clean = df[df.direction == "none"][["seed", "eval_lang", "acc"]].rename(columns={"acc": "acc_clean"})
+    clean = df[df.direction == "none"][["seed", "eval_lang", READOUT]].rename(columns={READOUT: "acc_clean"})
     cell = df[(df.layer == layer) & (df["rank"] == rank)].merge(clean, on=["seed", "eval_lang"])
-    cell = cell.assign(drop=cell.acc_clean - cell.acc)
+    cell = cell.assign(drop=cell.acc_clean - cell[READOUT])
     return cell.pivot_table(index="seed", columns=["direction", "eval_lang"], values="drop")
 
 
 def metrics_for(abl: pd.DataFrame, model: str, cfg: dict, layer: int, rank: int) -> dict[str, pd.Series]:
     s, tg, idl = cfg["source_lang"], cfg["target_lang"], cfg["identity_lang"]
     clean = abl[(abl.model == model) & (abl.concept == "side") & (abl.context == "informative")
-                & (abl.direction == "none")].pivot_table(index="seed", columns="eval_lang", values="acc")
+                & (abl.direction == "none")].pivot_table(index="seed", columns="eval_lang", values=READOUT)
     side = drops(abl, model, "side", layer, rank)
     m = {
         "clean_acc_src": clean[s],
         "clean_acc_tgt": clean[tg],
+        **({"clean_acc_identity": clean[idl]} if idl in clean.columns else {}),
         "drop_src": side[(s, s)],
         "drop_tgt": side[(s, tg)],
         "drop_random_src": side[("random", s)],
@@ -172,6 +174,8 @@ def figure2(probe, cfg, path) -> None:
 
 
 def run(cfg: dict) -> None:
+    global READOUT
+    READOUT = cfg.get("readout", "acc")
     out = resolve(cfg["results_dir"])
     abl, probe, erasure = collect(out, "ablation"), collect(out, "probe"), collect(out, "erasure")
     if abl.empty:
@@ -186,7 +190,7 @@ def run(cfg: dict) -> None:
     summary, lines, verdicts, gap_rows = [], [], {}, []
     lines += ["# Verdict", "",
               f"Primary cell: concept `side`, informative context, primary block, rank {rank}, "
-              f"direction fitted on `{cfg['source_lang']}`. Values are mean ± std over seeds, in accuracy points.", ""]
+              f"direction fitted on `{cfg['source_lang']}`. Readout `{READOUT}`. Values are mean ± std over seeds, in accuracy points.", ""]
     for model in dict.fromkeys(abl.model):
         layer = meta[model]["primary_layer"]
         m = metrics_for(abl, model, cfg, layer, rank)
@@ -202,7 +206,10 @@ def run(cfg: dict) -> None:
         for k, v in m.items():
             scale = 1 if k.startswith("clean") else 100
             lines.append(f"| {k} | {scale * v.mean():.2f} | {scale * v.std(ddof=0):.2f} |")
-        if "drop_identity" in mean:
+        if "drop_identity" in mean and mean.get("clean_acc_identity", 1.0) < t["gate_clean_acc"]:
+            lines += ["", f"Language-identity control: not interpretable ({cfg['identity_lang']} clean accuracy "
+                          f"{mean['clean_acc_identity']:.2f} < gate {t['gate_clean_acc']})."]
+        elif "drop_identity" in mean:
             tracks = abs(mean["drop_identity"] - mean["drop_src"]) < abs(mean["drop_identity"] - mean["drop_tgt"])
             lines += ["", f"Language-identity control: the {cfg['identity_lang']} drop is closer to the "
                           f"{'source' if tracks else 'target'} language -> effect "
