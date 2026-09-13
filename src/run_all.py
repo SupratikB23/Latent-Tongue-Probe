@@ -38,12 +38,14 @@ def load_items(cfg: dict) -> list[dict]:
     return [it for it in read_jsonl(path) if it["concept"] in cfg["concepts"] and it["lang"] in cfg["langs"]]
 
 
-def cached(path, ids, compute):
+def cached(path, ids, compute, tag: str):
+    """Reuse a cache only if it was built from the same items with the same dtype."""
     if path.exists():
         blob = torch.load(path)
-        if blob["ids"] == ids:
+        if blob["ids"] == ids and blob.get("tag") == tag:
             return blob
     blob = compute()
+    blob["tag"] = tag
     torch.save(blob, path)
     return blob
 
@@ -126,12 +128,13 @@ def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device,
     cache = resolve(cfg["cache_dir"]) / slug(name)
     cache.mkdir(parents=True, exist_ok=True)
     ids = [it["id"] for it in items]
-    acts = cached(cache / "activations.pt", ids, lambda: extract(model, tok, items, device, batch_size))
+    acts = cached(cache / "activations.pt", ids, lambda: extract(model, tok, items, device, batch_size), str(dtype))
     X = acts["kin"].numpy()
     lang_mean_np = {k: v.numpy().astype(np.float64) for k, v in acts["lang_mean"].items()}
     sset = ScoringSet(tok, items)
     base_logp = cached(cache / "baseline_logp.pt", ids,
-                       lambda: {"ids": ids, "logp": torch.from_numpy(score(model, sset, device, batch_size))})
+                       lambda: {"ids": ids, "logp": torch.from_numpy(score(model, sset, device, batch_size))},
+                       str(dtype))
     base_logp = base_logp["logp"].numpy()
     if baseline_only:
         print(f"{name}: baseline cached -> {cache}  (inspect with: python src/diagnose_baseline.py)")
