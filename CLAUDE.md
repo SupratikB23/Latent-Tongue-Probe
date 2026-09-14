@@ -13,7 +13,11 @@ python src/build_stimuli.py                           # regenerate data/stimuli.
 python -m pytest tests -q                             # offline tests, CPU, ~1-2 min
 python src/run_all.py --config configs/smoke.yaml     # offline end-to-end run on a tiny random model
 python src/run_all.py --seed 0                        # real run, one seed (GPU)
-python src/run_all.py                                 # real run, all 5 seeds
+python src/run_all.py                                 # original pre-registration, all 5 seeds
+python src/run_all.py --config configs/amended.yaml   # reported design (readout pair_acc, BLOOM-560m + 1b7)
+python src/run_all.py --config configs/backup.yaml    # backup concept side_aunt
+python src/diagnose_baseline.py                       # answer bias / pair accuracy from cached no-ablation scores
+python src/per_seed.py --config configs/backup.yaml   # per-seed primary cell + matched-control ceiling check
 python src/analyze.py                                 # re-aggregate results/raw -> results/
 ```
 
@@ -23,7 +27,13 @@ python src/analyze.py                                 # re-aggregate results/raw
 
 ## Compute
 
-The main machine is a **separate PC with an RTX 3070 (8 GB)**. This laptop has no GPU; use it for editing, tests, and the smoke config only. Kaggle (T4/P100, 30 GPU-h/week) is the fallback. Both models are ~560M params in float32 and fit in 8 GB. Setup scripts are in `scripts/`.
+The main machine is a **separate PC with an RTX 3070 (8 GB)**. This laptop has no GPU; use it for editing, tests, and the smoke config only. Kaggle (T4/P100, 30 GPU-h/week) is the fallback. Reported models: BLOOM-560m (float32) and BLOOM-1b7 (bfloat16, the only way it fits in 8 GB). A full 5-seed config takes ~96 min. Setup and the unattended runner (`overnight.ps1`) are in `scripts/`.
+
+## Status (14 Sep 2026)
+
+The run is complete. Results are in `results/final_results.md`, and the amendment log is `results/pilot_seed0.md`. Uncle side was FALSIFIED in both BLOOM models. The backup aunt side was SUPPORTED in BLOOM-1b7 only (G 16.8 ± 9.0), with the matched control at ceiling. Lead with the falsification. Never present the backup as the headline. `configs/default.yaml` is the untouched pre-registration. New changes go in a new config plus a log entry.
+
+On the GPU box, activate `.venv` first. The system Python there crashes on sentencepiece. BLOOM-560m must run in float32.
 
 ## Rules
 
