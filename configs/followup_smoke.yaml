@@ -1,0 +1,48 @@
+# Offline plumbing check for src/followup.py: tiny random GPT-2, CPU. Numbers are meaningless.
+# Gate 0 and ceiling 1 so the screen always selects and stage 2 runs.
+
+stimuli: data/stimuli_followup.jsonl
+cache_dir: cache_smoke_followup
+results_dir: results_smoke/followup
+
+anchor_model: __tiny_random__
+second_family_candidates: [__tiny_random__]
+
+readout: pair_acc
+primary_concept: side_aunt
+control_candidates: [side_aunt_named, gender_maternal]
+
+screen:
+  context: informative
+  control_ceiling: 1.0
+
+langs: [bn, en]
+source_lang: bn
+target_lang: en
+identity_lang: null
+
+seeds: [5]
+n_test_names: 6
+
+device: cpu
+dtype: float32
+batch_size: 64
+
+probe:
+  C: 1.0
+  max_iter: 500
+
+ablation:
+  mode: mean
+  primary_layer: mid
+  layer_stride: 2
+  primary_rank: 1
+  extra_ranks: [2]
+
+thresholds:
+  gate_clean_acc: 0.0
+  support_gap: 0.15
+  falsify_gap: 0.05
+  random_max_drop: 0.03
+  specificity_min: 0.03
+  matched_margin: 0.05

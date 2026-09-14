@@ -1,4 +1,4 @@
-"""Per-seed primary-cell numbers for the tested concept and the matched control (gender).
+"""Per-seed primary-cell numbers for the tested concept and the matched control (gender unless configured).
 
     python src/per_seed.py --config configs/backup.yaml
     python src/per_seed.py --config configs/amended.yaml
@@ -22,6 +22,7 @@ def main() -> None:
     cfg = load_config(ap.parse_args().config)
     analyze.READOUT = cfg.get("readout", "acc")
     analyze.PRIMARY = cfg.get("primary_concept", "side")
+    analyze.MATCHED = cfg.get("matched_concept", "gender")
 
     out = resolve(cfg["results_dir"])
     abl = pd.read_csv(out / "results.csv")
@@ -31,7 +32,7 @@ def main() -> None:
 
     for model in dict.fromkeys(abl.model):
         layer = meta[model]["primary_layer"]
-        for concept in dict.fromkeys([analyze.PRIMARY, "gender"]):
+        for concept in dict.fromkeys([analyze.PRIMARY, analyze.MATCHED]):
             d = analyze.drops(abl, model, concept, layer, rank)
             t = pd.DataFrame({"drop_src": d[(s, s)], "drop_tgt": d[(s, tg)], "drop_random_src": d[("random", s)]}) * 100
             t["gap"] = t.drop_src - t.drop_tgt

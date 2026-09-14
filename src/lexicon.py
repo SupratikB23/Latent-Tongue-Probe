@@ -9,6 +9,10 @@ side       paternal (0) vs maternal (1) uncle.  bn কাকা/মামা, hi
 gender     male (0) vs female (1) paternal sibling. bn কাকা/পিসি, hi चाचा/बुआ, en uncle/aunt (lexicalized everywhere)
 side_aunt  paternal (0) vs maternal (1) aunt.   bn পিসি/মাসি, hi बुआ/मौसी, en "aunt" (backup concept)
 
+Follow-up control candidates, bn and en only (configs/followup.yaml, results/followup_prereg.md)
+side_aunt_named  side_aunt with English naming the side: en "paternal aunt"/"maternal aunt"; bn identical to side_aunt
+gender_maternal  male (0) vs female (1) maternal sibling. bn মামা/মাসি, en uncle/aunt (lexicalized in both)
+
 Placeholders
 ------------
 {N}  name (en, hi) or name in genitive case (bn)
@@ -18,13 +22,17 @@ Placeholders
 """
 
 LANGS = ("bn", "hi", "en")
-CONCEPTS = ("side", "gender", "side_aunt")
+CONCEPTS = ("side", "gender", "side_aunt")  # pilot concepts; data/stimuli.jsonl is built from exactly these
+FOLLOWUP_CONCEPTS = ("side_aunt", "side_aunt_named", "gender_maternal")  # data/stimuli_followup.jsonl
+FOLLOWUP_LANGS = ("bn", "en")
 CONTEXTS = ("informative", "neutral")
 
 LABEL_NAMES = {
     "side": ("paternal", "maternal"),
     "gender": ("male", "female"),
     "side_aunt": ("paternal", "maternal"),
+    "side_aunt_named": ("paternal", "maternal"),
+    "gender_maternal": ("male", "female"),
 }
 
 # (en, bn, bn_genitive, hi). Genitive is stored, not derived: -এর after consonant-final, -র after vowel-final.
@@ -81,6 +89,8 @@ KIN = {
     "side": {"en": ("uncle", "uncle"), "bn": ("কাকা", "মামা"), "hi": ("चाचा", "मामा")},
     "gender": {"en": ("uncle", "aunt"), "bn": ("কাকা", "পিসি"), "hi": ("चाचा", "बुआ")},
     "side_aunt": {"en": ("aunt", "aunt"), "bn": ("পিসি", "মাসি"), "hi": ("बुआ", "मौसी")},
+    "side_aunt_named": {"en": ("paternal aunt", "maternal aunt"), "bn": ("পিসি", "মাসি")},
+    "gender_maternal": {"en": ("uncle", "aunt"), "bn": ("মামা", "মাসি")},
 }
 
 # Hindi grammatical gender of the kin term per label (drives {G} and the predicate form).
@@ -95,6 +105,8 @@ ANSWERS = {
     "side": {"en": (" father", " mother"), "bn": (" বাবার", " মায়ের"), "hi": (" पिता", " माँ")},
     "gender": {"en": (" brother", " sister"), "bn": (" ভাই", " বোন"), "hi": (" भाई", " बहन")},
     "side_aunt": {"en": (" father", " mother"), "bn": (" বাবার", " মায়ের"), "hi": (" पिता", " माँ")},
+    "side_aunt_named": {"en": (" father", " mother"), "bn": (" বাবার", " মায়ের")},
+    "gender_maternal": {"en": (" brother", " sister"), "bn": (" ভাই", " বোন")},
 }
 
 TEMPLATES = {
@@ -105,11 +117,15 @@ TEMPLATES = {
             "side": ("{N}'s father has one brother.", "{N}'s mother has one brother."),
             "gender": ("{N}'s father has one brother.", "{N}'s father has one sister."),
             "side_aunt": ("{N}'s father has one sister.", "{N}'s mother has one sister."),
+            "side_aunt_named": ("{N}'s father has one sister.", "{N}'s mother has one sister."),
+            "gender_maternal": ("{N}'s mother has one brother.", "{N}'s mother has one sister."),
         },
         "query": {
             "side": "Question: Is {N}'s {K} the father's brother or the mother's brother? Answer:",
             "gender": "Question: Is {N}'s {K} the father's brother or the father's sister? Answer:",
             "side_aunt": "Question: Is {N}'s {K} the father's sister or the mother's sister? Answer:",
+            "side_aunt_named": "Question: Is {N}'s {K} the father's sister or the mother's sister? Answer:",
+            "gender_maternal": "Question: Is {N}'s {K} the mother's brother or the mother's sister? Answer:",
         },
     },
     "bn": {
@@ -119,11 +135,15 @@ TEMPLATES = {
             "side": ("{N} বাবার একজন ভাই আছেন।", "{N} মায়ের একজন ভাই আছেন।"),
             "gender": ("{N} বাবার একজন ভাই আছেন।", "{N} বাবার একজন বোন আছেন।"),
             "side_aunt": ("{N} বাবার একজন বোন আছেন।", "{N} মায়ের একজন বোন আছেন।"),
+            "side_aunt_named": ("{N} বাবার একজন বোন আছেন।", "{N} মায়ের একজন বোন আছেন।"),
+            "gender_maternal": ("{N} মায়ের একজন ভাই আছেন।", "{N} মায়ের একজন বোন আছেন।"),
         },
         "query": {
             "side": "প্রশ্ন: {N} {K} কি বাবার ভাই না মায়ের ভাই? উত্তর:",
             "gender": "প্রশ্ন: {N} {K} কি বাবার ভাই না বাবার বোন? উত্তর:",
             "side_aunt": "প্রশ্ন: {N} {K} কি বাবার বোন না মায়ের বোন? উত্তর:",
+            "side_aunt_named": "প্রশ্ন: {N} {K} কি বাবার বোন না মায়ের বোন? উত্তর:",
+            "gender_maternal": "প্রশ্ন: {N} {K} কি মায়ের ভাই না মায়ের বোন? উত্তর:",
         },
     },
     "hi": {

@@ -1,0 +1,60 @@
+# Frozen follow-up to the aunt-side lead (results/final_results.md §2). Written before any follow-up run.
+# Plan and rationale: results/followup_prereg.md. Reproduce: python src/followup.py
+#
+# Unchanged from the pilot (configs/amended.yaml, configs/backup.yaml): intervention (mean ablation, block
+# n_layers // 2, rank 1, direction fitted on bn, informative context), readout pair_acc, probe settings,
+# 6 of 20 names held out, and every threshold. The uncle-side result and all pilot configs stay untouched.
+# Changed, all fixed here: models (anchor + second family), matched control, seeds, languages (bn vs en only).
+
+stimuli: data/stimuli_followup.jsonl   # python src/build_stimuli.py --followup
+cache_dir: cache_followup
+results_dir: results_followup
+
+anchor_model: bigscience/bloom-1b7     # the model that produced the lead; bfloat16 as in the pilot
+second_family_candidates:              # stage 1: first to pass the gate on side_aunt (bn and en) is used
+  - Qwen/Qwen3-1.7B-Base
+  - Qwen/Qwen2.5-1.5B
+  - ai-forever/mGPT
+
+readout: pair_acc
+primary_concept: side_aunt
+control_candidates:                    # stage 1: first inside [gate, control_ceiling] in bn and en, in every model
+  - side_aunt_named                    # same items; English names the side ("paternal aunt" / "maternal aunt")
+  - gender_maternal                    # মামা/মাসি vs uncle/aunt; lexicalized in both languages
+
+screen:
+  context: informative                 # no-ablation pair accuracy over all 20 names (200 pairs per cell)
+  control_ceiling: 0.95                # gender scored 1.00 in the pilot and could not move
+
+langs: [bn, en]
+source_lang: bn
+target_lang: en
+identity_lang: null                    # Hindi dropped: the comparison is Bengali vs English only
+
+seeds: [5, 6, 7, 8, 9]                 # fresh name splits and random directions; pilot used 0-4
+n_test_names: 6
+
+device: auto
+dtype: bfloat16
+model_dtype:
+  ai-forever/mGPT: float32             # fits in 8 GB at float32; bfloat16 is used only where float32 does not fit
+batch_size: 16
+
+probe:
+  C: 1.0
+  max_iter: 2000
+
+ablation:
+  mode: mean
+  primary_layer: mid
+  layer_stride: 2
+  primary_rank: 1
+  extra_ranks: [4]                     # reported, never decides
+
+thresholds:                            # identical to configs/default.yaml
+  gate_clean_acc: 0.65
+  support_gap: 0.15
+  falsify_gap: 0.05
+  random_max_drop: 0.03
+  specificity_min: 0.03
+  matched_margin: 0.05

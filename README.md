@@ -22,6 +22,10 @@ Built as a probe for The Bu1LD thread **T-02, "Sapir Whorf and the Latent Tongue
 
 **Reading.** Kinship side is perfectly decodable at the kin word, but for *uncle* the model doesn't use that direction. Removing it moves answers about 1 point in every language, no more than a random direction does. For *aunt*, BLOOM-1b7 shows the predicted Bengali-specific dependence. That result comes from one model and the backup concept, with high seed variance and a matched control at ceiling, so it is **a lead, not a finding**. All caveats are listed in [results/final_results.md](results/final_results.md).
 
+### Follow-up (frozen, not yet run)
+
+One bounded test of the aunt-side lead. It uses a second model family (the first of Qwen3-1.7B-Base, Qwen2.5-1.5B and mGPT to pass the task gate) and a matched control chosen by a fixed no-ablation screen so it isn't at ceiling. Seeds are fresh (5–9), and the comparison is Bengali vs English only. The intervention, primary cell and thresholds are unchanged, and the pilot and the uncle result are left untouched (tag `pilot-v1`). Plan and outcome rule: [results/followup_prereg.md](results/followup_prereg.md). Run it with `python src/followup.py`.
+
 ---
 
 ## Design
@@ -129,8 +133,10 @@ configs/
   default.yaml             original pre-registration (thresholds live here)
   amended.yaml             reported design (amendments above)
   backup.yaml              pre-specified backup concept (aunt side)
+  followup.yaml            frozen follow-up (second model family, non-ceiling control)
   smoke.yaml               offline pipeline check
 data/stimuli.jsonl         7,200 items, generated from src/lexicon.py
+data/stimuli_followup.jsonl  4,800 follow-up items (bn, en)
 src/
   lexicon.py               every natural-language string, in one reviewable file
   build_stimuli.py         renders items, character spans, minimal-pair ids
@@ -142,11 +148,13 @@ src/
   analyze.py               decision rule, tables, figures
   diagnose_baseline.py     answer-bias diagnostics
   per_seed.py              per-seed breakdown
+  followup.py              frozen follow-up: no-ablation screen, then the unchanged pipeline
 tests/                     offline tests
 scripts/                   GPU setup and unattended runner
 results/
   final_results.md         outcome, tables, caveats
   lab_log.md               pilot, diagnostics, amendments (chronological)
+  followup_prereg.md       follow-up plan and outcome rule, frozen before running
 results_amended/           reported run
 results_backup/            backup-concept run
 ```

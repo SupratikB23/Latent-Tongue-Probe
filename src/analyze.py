@@ -24,7 +24,8 @@ SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]  # categorical slots 1-3, validated a
 INK, INK2, MUTED, GRID, AXIS, SURFACE = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7", "#fcfcfb"
 LANG_NAME = {"bn": "Bengali", "hi": "Hindi", "en": "English"}
 READOUT = "acc"  # accuracy column the decision rule uses; set from cfg["readout"] in run()
-PRIMARY = "side"  # concept under test; set from cfg["primary_concept"] in run(). "gender" is always the matched control
+PRIMARY = "side"  # concept under test; set from cfg["primary_concept"] in run()
+MATCHED = "gender"  # matched-concept control; set from cfg["matched_concept"] in run()
 
 
 def collect(results_dir, name: str) -> pd.DataFrame:
@@ -67,8 +68,8 @@ def metrics_for(abl: pd.DataFrame, model: str, cfg: dict, layer: int, rank: int)
     }
     if (s, idl) in side.columns:
         m["drop_identity"] = side[(s, idl)]
-    if "gender" in set(abl.concept):
-        gen = drops(abl, model, "gender", layer, rank)
+    if MATCHED in set(abl.concept):
+        gen = drops(abl, model, MATCHED, layer, rank)
         m["gap_matched"] = gen[(s, s)] - gen[(s, tg)]
     return m
 
@@ -116,9 +117,9 @@ def figure1(abl, cfg, meta, verdicts, path) -> None:
         side = drops(abl, model, PRIMARY, layer, rank)
         bars = [(f"{LANG_NAME.get(s, s)} {PRIMARY} direction", side, s),
                 ("random direction", side, "random")]
-        if "gender" in set(abl.concept):
-            bars.append((f"{LANG_NAME.get(s, s)} gender direction (matched control)",
-                         drops(abl, model, "gender", layer, rank), s))
+        if MATCHED in set(abl.concept):
+            bars.append((f"{LANG_NAME.get(s, s)} {MATCHED} direction (matched control)",
+                         drops(abl, model, MATCHED, layer, rank), s))
         x = np.arange(len(langs))
         w = 0.8 / len(bars)
         for k, (label, table, direction) in enumerate(bars):
@@ -175,9 +176,10 @@ def figure2(probe, cfg, path) -> None:
 
 
 def run(cfg: dict) -> None:
-    global READOUT, PRIMARY
+    global READOUT, PRIMARY, MATCHED
     READOUT = cfg.get("readout", "acc")
     PRIMARY = cfg.get("primary_concept", "side")
+    MATCHED = cfg.get("matched_concept", "gender")
     out = resolve(cfg["results_dir"])
     abl, probe, erasure = collect(out, "ablation"), collect(out, "probe"), collect(out, "erasure")
     if abl.empty:

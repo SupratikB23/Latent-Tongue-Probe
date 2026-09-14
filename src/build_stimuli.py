@@ -2,6 +2,7 @@
 
     python src/build_stimuli.py              # write data/stimuli.jsonl
     python src/build_stimuli.py --preview    # print one minimal pair per cell for native-speaker review
+    python src/build_stimuli.py --followup   # write data/stimuli_followup.jsonl (add --preview to review it)
 
 Each item is   <context sentence> <target sentence containing the kin term> <question>
 and is scored by comparing log p(answer_0) vs log p(answer_1) as the continuation.
@@ -13,8 +14,8 @@ import argparse
 import unicodedata
 from collections import Counter
 
-from lexicon import (ANSWERS, CONCEPTS, CONTEXTS, KIN, KIN_HI_FEMININE, LABEL_NAMES, LANGS, NAMES,
-                     PREDICATES, TEMPLATES)
+from lexicon import (ANSWERS, CONCEPTS, CONTEXTS, FOLLOWUP_CONCEPTS, FOLLOWUP_LANGS, KIN, KIN_HI_FEMININE,
+                     LABEL_NAMES, LANGS, NAMES, PREDICATES, TEMPLATES)
 from utils import write_jsonl
 
 
@@ -64,34 +65,37 @@ def render(concept: str, context: str, lang: str, label: int, name_id: int, pred
     }
 
 
-def build_all() -> list[dict]:
+def build_all(concepts=CONCEPTS, langs=LANGS) -> list[dict]:
     return [
         render(c, ctx, lang, y, n, p)
-        for c in CONCEPTS for ctx in CONTEXTS for lang in LANGS
+        for c in concepts for ctx in CONTEXTS for lang in langs
         for n in range(len(NAMES)) for p in range(len(PREDICATES)) for y in (0, 1)
     ]
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="data/stimuli.jsonl")
+    ap.add_argument("--out", help="default: data/stimuli.jsonl, or data/stimuli_followup.jsonl with --followup")
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--followup", action="store_true", help="follow-up concepts, bn and en only")
     args = ap.parse_args()
 
-    items = build_all()
+    concepts, langs = (FOLLOWUP_CONCEPTS, FOLLOWUP_LANGS) if args.followup else (CONCEPTS, LANGS)
+    out = args.out or ("data/stimuli_followup.jsonl" if args.followup else "data/stimuli.jsonl")
+    items = build_all(concepts, langs)
     if args.preview:
-        for c in CONCEPTS:
+        for c in concepts:
             for ctx in CONTEXTS:
-                for lang in LANGS:
+                for lang in langs:
                     for y in (0, 1):
                         it = render(c, ctx, lang, y, 0, 0)
                         print(f"[{c}/{ctx}/{lang}/{it['label_name']}] {it['text']}  ->{it['answers'][y]}")
                 print()
         return
 
-    write_jsonl(items, args.out)
+    write_jsonl(items, out)
     counts = Counter((it["concept"], it["context"], it["lang"]) for it in items)
-    print(f"wrote {len(items)} items to {args.out}")
+    print(f"wrote {len(items)} items to {out}")
     for key, n in sorted(counts.items()):
         print("  ", "/".join(key), n)
 
