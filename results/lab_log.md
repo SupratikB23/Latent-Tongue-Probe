@@ -1,4 +1,8 @@
-# Pilot run: seed 0
+# Lab log: pilot, diagnostics and amendments
+
+Chronological record of everything decided between the first GPU run and the reported run. Final outcome: [final_results.md](final_results.md).
+
+## Pilot run: seed 0
 
 Date: 14 Sep 2026 · Machine: RTX 3070 (8 GB), Windows, `.venv` Python · Command: `python -X faulthandler src/run_all.py --seed 0` · Config: `configs/default.yaml` (unchanged, thresholds as pre-registered)
 
@@ -51,7 +55,7 @@ Projected full run (5 seeds × 2 models) ≈ **80 min** on the 3070, plus weight
 
 Running seeds 1–4 on these models can only give INCONCLUSIVE, so don't spend the time on it.
 
-- **Pre-registered fallback (PRD §9):** move to `bigscience/bloom-1b7` and `facebook/xglm-1.7B`, keep everything else fixed, and rerun `--seed 0`. At float16 these fit in 8 GB. The config says float32, and float32 1.7B also fits for scoring at a reduced batch size (`--batch-size 8`).
+- **Pre-registered fallback:** move to `bigscience/bloom-1b7` and `facebook/xglm-1.7B`, keep everything else fixed, and rerun `--seed 0`. At float16 these fit in 8 GB. The config says float32, and float32 1.7B also fits for scoring at a reduced batch size (`--batch-size 8`).
 - **Diagnose first (cheap, uses existing output):** in `results/results.csv`, filter `direction == none`, `concept == side`. Check accuracy and `logit_diff` for each language and context. If `logit_diff` has the same sign for both labels, the model has an answer bias, and a larger model may still fail. In that case the readout (question format) is the problem, not model size.
 - If the readout gets changed (for example, a calibrated score comparing each item against its minimal-pair partner), it's a **deviation from the spec**. Log it here with the reason *before* rerunning, and state it in SPEC.md.
 
@@ -105,7 +109,7 @@ Decided from the no-ablation diagnostics above. No ablation result was used. `co
 | | pre-registered (`default.yaml`) | amended (`amended.yaml`) | reason |
 |---|---|---|---|
 | readout | item accuracy | **minimal-pair accuracy** | constant answer bias (`pick0` ≈ 0 or 1) masks what the input changes |
-| models | XGLM-564M, BLOOM-560m | **BLOOM-560m, BLOOM-1b7** | only BLOOM passes the gate; the fallback named in PRD §9 was the 1.7B size |
+| models | XGLM-564M, BLOOM-560m | **BLOOM-560m, BLOOM-1b7** | only BLOOM passes the gate; the pre-registered fallback was the 1.7B size |
 | dtype | float32 | bfloat16 | 1.7B must fit in 8 GB |
 | thresholds, primary cell, seeds, controls | — | **unchanged** | |
 
@@ -134,7 +138,7 @@ Runtime on the RTX 3070 (bfloat16): BLOOM-560m 258 s per seed, BLOOM-1b7 632 s p
 
 Reading, one seed, not final:
 
-1. **BLOOM-1b7: ablating the Bengali side direction changes nothing, in any language.** Bengali itself drops 0.8 points, the same as a random direction. So the result is not "shared encoding" in the sense of the Bengali direction also hurting English. The Bengali direction doesn't hurt Bengali either. This is the "decodable but not used" outcome listed in PRD §2. The probe finds the direction at 1.0, but removing it at block 12 doesn't affect the answer. Rank 4 gives the same picture.
+1. **BLOOM-1b7: ablating the Bengali side direction changes nothing, in any language.** Bengali itself drops 0.8 points, the same as a random direction. So the result is not "shared encoding" in the sense of the Bengali direction also hurting English. The Bengali direction doesn't hurt Bengali either. This is the "decodable but not used" outcome named in the original design. The probe finds the direction at 1.0, but removing it at block 12 doesn't affect the answer. Rank 4 gives the same picture.
 2. **F1 and F2 decide the verdict. F3 fires vacuously.** F3 checks gap_matched ≥ G − 5, which is automatically true when G ≈ 0. It is meant to catch an artifact when there *is* a gap. This is a weakness in the pre-registered rule, noted here and not "fixed", since the verdict doesn't depend on it.
 3. **BLOOM-560m fails the gate in English (0.59), although the float32 diagnostic gave 0.98 on all names.** Likely cause: English margins are tiny for this model (item logit_diff ≈ 0.08), so bfloat16 rounding flips many pair comparisons. Not yet verified. See next steps.
 
@@ -164,7 +168,7 @@ Next steps (fixed before looking at anything else):
 
 ## Backup concept triggered (`configs/backup.yaml`)
 
-`side` was flat in BLOOM-1b7 on seed 0 (specificity 0.0, G 2.5). The pre-specified rule (CLAUDE.md, PRD §4.1) says `side_aunt` (পিসি/মাসি, बुआ/मौसी, aunt/aunt) runs in that case. It uses the same models, readout, thresholds and seeds, with results in `results_backup/`. This decision depended on an outcome, but the contingency was written down before any run. The backup is reported separately and **cannot change the primary `side` verdict**.
+`side` was flat in BLOOM-1b7 on seed 0 (specificity 0.0, G 2.5). The original design's pre-specified rule says `side_aunt` (পিসি/মাসি, बुआ/मौसी, aunt/aunt) runs in that case. It uses the same models, readout, thresholds and seeds, with results in `results_backup/`. This decision depended on an outcome, but the contingency was written down before any run. The backup is reported separately and **cannot change the primary `side` verdict**.
 
 ## Unattended run
 
