@@ -1,4 +1,4 @@
-# Backup concept (PRD §4.1, CLAUDE.md): side_aunt runs because `side` was flat in BLOOM-1b7 (amended seed 0).
+# Backup concept (named in the original design before any run): side_aunt runs because `side` was flat in BLOOM-1b7 (amended seed 0).
 # Pre-specified contingency, reported separately. It cannot change the primary `side` verdict.
 # Identical to configs/amended.yaml except concept, cache and results directories.
 #   side_aunt: bn পিসি/মাসি, hi बुआ/मौसी, en aunt/aunt  (father's vs mother's sister)
