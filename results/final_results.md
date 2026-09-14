@@ -2,7 +2,7 @@
 
 Run: 14 Sep 2026, 03:35–06:49, one RTX 3070 (`scripts/overnight.ps1`). Every step exited 0.
 Primary design: `configs/amended.yaml` → `results_amended/` (96 min). Backup concept: `configs/backup.yaml` → `results_backup/` (98 min).
-Amendments and their reasons: `results/pilot_seed0.md`. Thresholds are unchanged from the pre-registration.
+Amendments and their reasons: [lab_log.md](lab_log.md). Spec: [SPEC.md](../SPEC.md). Thresholds are unchanged from the pre-registration.
 
 All numbers: primary cell (block 12 of 24, rank 1, informative context, direction fitted on Bengali), minimal-pair accuracy, **mean ± std over 5 seeds**, in accuracy points. Clean accuracies are fractions.
 
@@ -19,7 +19,7 @@ All numbers: primary cell (block 12 of 24, rank 1, informative context, directio
 | rank-4: G / random drop | 4.2 ± 2.5 / −0.7 | 1.7 ± 3.0 / −0.3 |
 | verdict | FALSIFIED (F1, F2) | FALSIFIED (F1, F2) |
 
-Both models pass the task gate comfortably. Removing the Bengali-fitted uncle-side direction at block 12 changes accuracy by about 1 point in **every** language, the same as a random direction. That holds at rank 4 as well. The probe decodes the distinction perfectly at the kin token (`figure2_probe_layers.png`), but the model doesn't route its answer through that direction. This is the "decodable but not used" outcome listed in PRD §2. It is not evidence of a shared subspace, because the Bengali direction doesn't hurt Bengali either.
+Both models pass the task gate comfortably. Removing the Bengali-fitted uncle-side direction at block 12 changes accuracy by about 1 point in **every** language, the same as a random direction. That holds at rank 4 as well. The probe decodes the distinction perfectly at the kin token (`figure2_probe_layers.png`), but the model doesn't route its answer through that direction. This is the "decodable but not used" outcome named in advance in SPEC.md. It is not evidence of a shared subspace, because the Bengali direction doesn't hurt Bengali either.
 
 ## 2. Backup concept: aunt side (পিসি / মাসি): **SUPPORTED in BLOOM-1b7 only**
 
