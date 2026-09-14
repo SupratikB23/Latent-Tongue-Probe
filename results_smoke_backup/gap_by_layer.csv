@@ -1,0 +1,5 @@
+model,concept,layer,rank,gap_mean,gap_std,random_drop_src
+__tiny_random__,side_aunt,0,1,0.0,0.0,0.08333333333333337
+__tiny_random__,side_aunt,2,1,-0.016666666666666607,0.0,0.0
+__tiny_random__,gender,0,1,0.0,0.0,0.0
+__tiny_random__,gender,2,1,0.01666666666666683,0.0,0.0

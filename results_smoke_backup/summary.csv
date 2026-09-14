@@ -1,0 +1,11 @@
+model,layer,rank,metric,mean,std,n_seeds
+__tiny_random__,2,1,clean_acc_src,1.0,0.0,1
+__tiny_random__,2,1,clean_acc_tgt,1.0,0.0,1
+__tiny_random__,2,1,clean_acc_identity,0.35,0.0,1
+__tiny_random__,2,1,drop_src,0.21666666666666667,0.0,1
+__tiny_random__,2,1,drop_tgt,0.23333333333333328,0.0,1
+__tiny_random__,2,1,drop_random_src,0.0,0.0,1
+__tiny_random__,2,1,gap,-0.016666666666666607,0.0,1
+__tiny_random__,2,1,specificity,0.21666666666666667,0.0,1
+__tiny_random__,2,1,drop_identity,0.08333333333333337,0.0,1
+__tiny_random__,2,1,gap_matched,0.01666666666666683,0.0,1

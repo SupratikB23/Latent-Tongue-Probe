@@ -1,0 +1,18 @@
+{
+  "model": "__tiny_random__",
+  "seed": 0,
+  "n_layers": 4,
+  "d_model": 64,
+  "primary_layer": 2,
+  "ablation_layers": [
+    0,
+    2
+  ],
+  "device": "cpu",
+  "dtype": "torch.float32",
+  "gpu": null,
+  "torch": "2.7.0+cpu",
+  "python": "3.12.10",
+  "seed_seconds": 33.5,
+  "model_seconds_so_far": 54.8
+}
