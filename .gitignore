@@ -1,12 +1,19 @@
+# --- Python / environment
 __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
-cache/
-cache_smoke/
-results_smoke/
+
+# --- Model caches: activations and no-ablation scores (large, rebuilt automatically)
+cache*/
 *.pt
+
+# --- Offline smoke tests on a 4-layer random model (numbers are meaningless, rebuilt in minutes)
+results_smoke*/
 results_smoke_log.txt
-outreach/
-results_smoke_pair/
-results_smoke_backup/
+
+# --- Console logs from scripts/overnight.ps1 (progress-bar output; timings live in run_meta.json)
+logs/
+
+# Kept on purpose: data/stimuli.jsonl, results/ (pilot + write-ups),
+# results_amended/ and results_backup/ (the reported runs, including raw/ per-seed CSVs)
