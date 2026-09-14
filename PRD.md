@@ -1,6 +1,6 @@
 # PRD: latent-tongue-probe
 
-Owner: Supratik Bhowal · Audience: Ryan Gomez, The Bu1LD (T-02 research screen) · Status: design frozen, code complete, awaiting GPU run · Date: 13 Sep 2026
+Owner: Supratik Bhowal · Audience: Ryan Gomez, The Bu1LD (T-02 research screen) · Status: run complete, see §12 · Designed 13 Sep 2026 · Run 14 Sep 2026
 
 ---
 
@@ -254,3 +254,27 @@ flowchart LR
 - Templated sentences are less natural than corpus text, which is the price of control.
 - A linear direction is one hypothesis about representational form. A null result under linear ablation doesn't rule out nonlinear encoding.
 - English side information is contextual by construction. The design measures whether the model *binds* it into a shared direction, not whether English speakers "think" in sides.
+
+## 12. Amendments and outcome (14 Sep 2026)
+
+**Amendments.** Each was decided from no-ablation diagnostics. Log: `results/pilot_seed0.md`. `configs/default.yaml` stays as the original pre-registration.
+
+| | pre-registered | amended | trigger |
+|---|---|---|---|
+| readout | item accuracy | minimal-pair accuracy | `pick0` ≈ 0 or 1: constant answer bias |
+| models | XGLM-564M, BLOOM-560m | BLOOM-560m, BLOOM-1b7 | XGLM fails the gate at 564M and 1.7B; §9 fallback |
+| dtype | float32 | 560m float32, 1b7 bfloat16 | 1.7B must fit in 8 GB; bfloat16 broke 560m English (0.98 → 0.55) |
+| thresholds, primary cell, controls, seeds | | unchanged | |
+
+**Outcome** (5 seeds; full tables and caveats in `results/final_results.md`):
+
+| concept | BLOOM-1b7 | BLOOM-560m |
+|---|---|---|
+| uncle side (primary) | **FALSIFIED**: G 1.5 ± 1.0, specificity 1.3 ± 1.6 | **FALSIFIED**: G 0.0 ± 1.1, specificity 1.7 ± 2.6 |
+| aunt side (backup, §4.1) | **SUPPORTED**: G 16.8 ± 9.0, drop bn 21.2 ± 8.3 vs en 4.3 ± 4.0, random −0.8 | INCONCLUSIVE: en gate 0.63 |
+
+**Lessons for the design.**
+- The matched concept (gender) was at ceiling (gap 0.00 ± 0.00 everywhere), so F3 had no power. A future version needs a matched concept with clean accuracy below ceiling.
+- The Hindi identity control failed the gate in BLOOM-1b7.
+- The F3 rule (`gap_matched ≥ G − 5`) fires vacuously when G ≈ 0. It should only be evaluated when G ≥ `falsify_gap`.
+- Answer-bias and precision checks (`diagnose_baseline.py`) belong *before* the pre-registration is frozen, not after the pilot.
