@@ -2,13 +2,13 @@
 
 Supratik Bhowal · spec for The Bu1LD research screen · repo: `latent-tongue-probe`
 
-**Falsifiable hypothesis.** Take XGLM-564M and BLOOM-560m at decoder block 12/24. Fit the rank-1 direction that separates Bengali কাকা (father's brother) from মামা (mother's brother), then mean-ablate it. This lowers accuracy on a "father's or mother's brother?" question by ≥15 points more in Bengali than in English, where "uncle" gets its side only from a context sentence. A random rank-1 direction lowers Bengali accuracy by ≤3 points.
+**Falsifiable hypothesis.** Take BLOOM-560m and BLOOM-1b7 at decoder block 12/24. Fit the rank-1 direction that separates Bengali কাকা (father's brother) from মামা (mother's brother), then mean-ablate it. This lowers accuracy on a "father's or mother's brother?" question by ≥15 points more in Bengali than in English, where "uncle" gets its side only from a context sentence. A random rank-1 direction lowers Bengali accuracy by ≤3 points.
 
 **Intervention.** Fit a logistic probe on the block-12 residual stream at the kin-term token (14 train names). Its weight vector, mapped to raw space, gives direction v. Then, at the output of block 12, at every token except the first:
 h ← h − ((h − μ_lang)·v)v, where μ_lang is that language's label-free mean activation.
-Readout: item is correct iff log p(correct answer) > log p(other answer), e.g. " father" vs " mother", " বাবার" vs " মায়ের".
+Readout, minimal-pair accuracy: a pair counts as correct when the মামা item prefers " মায়ের" over " বাবার" more than its কাকা partner does. This cancels any constant answer bias.
 
-**Model and dataset.** `facebook/xglm-564M` and `bigscience/bloom-560m`, both pretrained on Bengali and Hindi. Hand-built stimuli: *context sentence · kin-term sentence · question*, with 20 names × 10 neutral predicates × 2 labels. That makes **200 minimal pairs per cell**, across 3 languages (bn, hi, en), 2 concepts, and 2 context types: 4,800 items. The split is name-disjoint (14/6). Compute: one RTX 3070 (8 GB) or a Kaggle T4, budgeted under 4 GPU-hours end to end.
+**Model and dataset.** `bigscience/bloom-560m` (float32) and `bigscience/bloom-1b7` (bfloat16), both pretrained on Bengali and Hindi. Hand-built stimuli: *context sentence · kin-term sentence · question*, with 20 names × 10 neutral predicates × 2 labels. That makes **200 minimal pairs per cell**, across 3 languages (bn, hi, en), 2 concepts, and 2 context types: 4,800 items. The split is name-disjoint (14/6). Compute: one RTX 3070 (8 GB); the full 5-seed run measured 96 min.
 
 **Control conditions.** Each changes one thing and holds the rest fixed, the same logic as the provenance control in CoT-Mediate.
 1. *Random direction* of equal rank, same hook, same μ.
@@ -25,12 +25,16 @@ Readout: item is correct iff log p(correct answer) > log p(other answer), e.g. "
 
 A negative result is still a finding. "Kinship side lives in a shared subspace" or "decodable but not used" are both claims about multilingual representation, and I'll report whichever the code returns.
 
+**Amendments (from no-ablation diagnostics; thresholds, primary cell and controls unchanged).** A seed-0 pilot showed strong constant answer bias, and XGLM failed the task gate at both 564M and 1.7B. The readout moved from item accuracy to minimal-pair accuracy. The models moved from XGLM-564M + BLOOM-560m to the BLOOM-560m/1b7 fallback. BLOOM-560m stays in float32, because bfloat16 destroyed its English margins. Full log: `results/pilot_seed0.md`. Outcome: `results/final_results.md`.
+
 **Smallest reproducible artifact (one week).**
 ```
 latent-tongue-probe/
   README.md               one command, expected runtime, expected sanity values
   requirements.txt        pinned (torch 2.7.0, transformers 4.57.3, scikit-learn 1.6.0)
-  configs/default.yaml    models, seeds, pre-registered thresholds
+  configs/default.yaml    original pre-registration (models, seeds, thresholds)
+  configs/amended.yaml    Amendments 1-2; backup.yaml = pre-specified aunt concept
+  scripts/overnight.ps1   the reported run, unattended (~3.3 h)
   data/stimuli.jsonl      7,200 items; src/lexicon.py is the single reviewable source
   src/run_all.py          python src/run_all.py --seed 0
   src/{extract,probe,ablate,analyze}.py
