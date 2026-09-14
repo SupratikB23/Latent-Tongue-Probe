@@ -25,7 +25,7 @@ Readout, minimal-pair accuracy: a pair counts as correct when the মামা i
 
 A negative result is still a finding. "Kinship side lives in a shared subspace" or "decodable but not used" are both claims about multilingual representation, and I'll report whichever the code returns.
 
-**Amendments (from no-ablation diagnostics; thresholds, primary cell and controls unchanged).** A seed-0 pilot showed strong constant answer bias, and XGLM failed the task gate at both 564M and 1.7B. The readout moved from item accuracy to minimal-pair accuracy. The models moved from XGLM-564M + BLOOM-560m to the BLOOM-560m/1b7 fallback. BLOOM-560m stays in float32, because bfloat16 destroyed its English margins. Full log: `results/pilot_seed0.md`. Outcome: `results/final_results.md`.
+**Amendments (from no-ablation diagnostics; thresholds, primary cell and controls unchanged).** A seed-0 pilot showed strong constant answer bias, and XGLM failed the task gate at both 564M and 1.7B. The readout moved from item accuracy to minimal-pair accuracy. The models moved from XGLM-564M + BLOOM-560m to the BLOOM-560m/1b7 fallback. BLOOM-560m stays in float32, because bfloat16 destroyed its English margins. The original design also named a backup concept, aunt side (পিসি/মাসি), to run if uncle side came out flat. It did, so the backup ran with identical settings and is reported separately. Full log: `results/lab_log.md`. Outcome: `results/final_results.md`.
 
 **Smallest reproducible artifact (one week).**
 ```
@@ -39,6 +39,8 @@ latent-tongue-probe/
   src/run_all.py          python src/run_all.py --seed 0
   src/{extract,probe,ablate,analyze}.py
   tests/                  offline: ablation invariant, scorer = full logits, stimulus invariants
-  results/raw/            per-seed CSVs (committed) → results.csv, verdict.md, figure1.png
+  results/                final_results.md (outcome), lab_log.md (pilot + amendments)
+  results_amended/        reported run: raw per-seed CSVs → results.csv, verdict.md, figures
+  results_backup/         backup concept, same layout
 ```
 The decision rule is code (`analyze.decide`), so the verdict can't be tuned by hand after the fact.
