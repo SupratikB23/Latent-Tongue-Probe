@@ -9,7 +9,7 @@ cache*/
 *.pt
 
 # --- Offline smoke tests on a 4-layer random model (numbers are meaningless, rebuilt in minutes)
-results_smoke*/
+results_smoke/
 results_smoke_log.txt
 
 # --- Console logs from scripts/overnight.ps1 (progress-bar output; timings live in run_meta.json)
