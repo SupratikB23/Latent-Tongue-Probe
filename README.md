@@ -7,9 +7,12 @@ This repo is a probe for The Bu1LD thread T-02. The one-page spec is [SPEC.md](S
 ## Reproduce
 
 ```bash
-python src/run_all.py --seed 0      # one seed, both models
-python src/run_all.py               # all five seeds, then analysis
+python src/run_all.py --config configs/amended.yaml    # reported design (Amendments 1-2) -> results_amended/
+python src/run_all.py --config configs/backup.yaml     # pre-specified backup concept   -> results_backup/
+python src/run_all.py                                  # original pre-registration      -> results/
 ```
+
+On Windows, `powershell -ExecutionPolicy Bypass -File scripts\overnight.ps1` runs the first two unattended and logs to `logs/`. **Results: [results/final_results.md](results/final_results.md).** Amendment log: [results/pilot_seed0.md](results/pilot_seed0.md).
 
 Outputs land in `results/`:
 
@@ -58,13 +61,15 @@ The smoke config uses a 4-layer random GPT-2 with a tokenizer trained on the sti
 
 ## Expected runtime
 
-Estimates for 2 models × 5 seeds (replace with the numbers in `run_meta.json` after the first run):
+Measured on one RTX 3070 (8 GB), 5 seeds:
 
-| hardware | total |
-|---|---|
-| RTX 3070, 8 GB | ~1.5 h |
-| Kaggle T4, 16 GB | ~3 h |
-| CPU smoke config | a few minutes |
+| run | per seed | total |
+|---|---|---|
+| `amended.yaml`: BLOOM-560m (float32) + BLOOM-1b7 (bfloat16) | ~8 + ~10.5 min | 96 min |
+| `backup.yaml`: same models, aunt concept | same | 98 min |
+| CPU smoke config | | a few minutes |
+
+Kaggle T4 is untested; expect it to be slower.
 
 If memory runs out, pass `--batch-size 16`. If time runs short, raise `ablation.layer_stride` in the config; the primary cell (block 12) is always included.
 
