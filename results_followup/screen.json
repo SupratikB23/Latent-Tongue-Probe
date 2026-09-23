@@ -1,0 +1,48 @@
+{
+  "anchor_model": "bigscience/bloom-1b7",
+  "selected_model": null,
+  "control": null,
+  "screened_models": [
+    "bigscience/bloom-1b7",
+    "Qwen/Qwen3-1.7B-Base",
+    "Qwen/Qwen2.5-1.5B",
+    "ai-forever/mGPT"
+  ],
+  "clean_pair_acc_all_names": {
+    "bigscience/bloom-1b7": {
+      "side_aunt/bn": 0.925,
+      "side_aunt/en": 0.85,
+      "side_aunt_named/bn": 0.925,
+      "side_aunt_named/en": 1.0,
+      "gender_maternal/bn": 1.0,
+      "gender_maternal/en": 1.0
+    },
+    "Qwen/Qwen3-1.7B-Base": {
+      "side_aunt/bn": 0.0,
+      "side_aunt/en": 1.0,
+      "side_aunt_named/bn": 0.0,
+      "side_aunt_named/en": 1.0,
+      "gender_maternal/bn": 1.0,
+      "gender_maternal/en": 1.0
+    },
+    "Qwen/Qwen2.5-1.5B": {
+      "side_aunt/bn": 0.51,
+      "side_aunt/en": 1.0,
+      "side_aunt_named/bn": 0.515,
+      "side_aunt_named/en": 1.0,
+      "gender_maternal/bn": 1.0,
+      "gender_maternal/en": 1.0
+    },
+    "ai-forever/mGPT": {
+      "side_aunt/bn": 0.38,
+      "side_aunt/en": 0.095,
+      "side_aunt_named/bn": 0.38,
+      "side_aunt_named/en": 1.0,
+      "gender_maternal/bn": 0.6,
+      "gender_maternal/en": 1.0
+    }
+  },
+  "context": "informative",
+  "gate": 0.65,
+  "control_ceiling": 0.95
+}
