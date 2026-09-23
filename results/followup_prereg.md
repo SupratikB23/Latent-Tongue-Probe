@@ -83,4 +83,16 @@ Every outcome is retained exactly as the code prints it in `results_followup/fol
 
 ## Deviations log
 
-(none)
+**F1 (23 Sep 2026, before any follow-up run, requested by the reviewer; no outcome seen).** Pin every checkpoint and tokenizer the screen may select, and lock the execution environment. Nothing else changes: model order, gate, 15-point gap, 3-point random/control rule, seeds 5–9, intervention, lexicon and stimuli are all as frozen in 655c740.
+
+| model | Hugging Face commit (weights and tokenizer) |
+|---|---|
+| bigscience/bloom-1b7 | `cc72a88036c2fb937d65efeacc57a0c2ef5d6fe5` |
+| Qwen/Qwen3-1.7B-Base | `ea980cb0a6c2ae4b936e82123acc929f1cec04c1` |
+| Qwen/Qwen2.5-1.5B | `8faed761d45a263340a0528343f099c05c9a4323` |
+| ai-forever/mGPT | `40897bd7c8b47a76802c411108ca6220438b8b40` |
+
+- `configs/followup.yaml` carries these under `revisions:`, and `load_model` passes each one to both `from_pretrained` calls. `run_meta.json` records the revision and the `transformers` version.
+- `followup.py` stops before any compute if a candidate is unpinned.
+- `env/followup_lock.txt` is `pip freeze` of the GPU PC `.venv`. `followup.py` writes the live `pip freeze` to `results_followup/env_freeze.txt`, and stops if it differs from the lock.
+- Checked before freezing: all four tokenizers load as fast tokenizers at these commits. The kin token is located in every follow-up item, and no answer tokenizes to zero tokens.

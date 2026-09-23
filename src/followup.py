@@ -18,6 +18,8 @@ import sentencepiece  # noqa: F401  must load before torch/sklearn (see run_all.
 
 import argparse
 import json
+import subprocess
+import sys
 
 import numpy as np
 import torch
@@ -84,6 +86,28 @@ def outcome(per_model: dict[str, dict]) -> str:
     return "MIXED"
 
 
+def check_pins(cfg: dict) -> None:
+    """Every model the screen may select must be pinned to a full Hugging Face commit SHA."""
+    revs = cfg.get("revisions", {})
+    bad = [m for m in [cfg["anchor_model"], *cfg["second_family_candidates"]]
+           if m != "__tiny_random__" and not (isinstance(revs.get(m), str) and len(revs[m]) == 40)]
+    if bad:
+        raise SystemExit(f"unpinned models (add a 40-char commit to revisions:): {bad}")
+
+
+def check_env(cfg: dict, out) -> None:
+    """Record the installed packages and stop if they differ from the committed lock."""
+    lock = cfg.get("env_lock")
+    if lock is None:
+        return
+    frozen = subprocess.run([sys.executable, "-m", "pip", "freeze"], capture_output=True, text=True, check=True).stdout
+    (out / "env_freeze.txt").write_text(frozen, encoding="utf-8")
+    want = {l.strip() for l in resolve(lock).read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
+    have = {l.strip() for l in frozen.splitlines() if l.strip()}
+    if want != have:
+        raise SystemExit(f"environment differs from {lock}: missing {sorted(want - have)}, extra {sorted(have - want)}")
+
+
 def write_verdict(out, lines: list[str]) -> None:
     (out / "followup_verdict.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
@@ -100,6 +124,8 @@ def main() -> None:
     items = load_items(cfg)
     out = resolve(cfg["results_dir"])
     out.mkdir(parents=True, exist_ok=True)
+    check_pins(cfg)
+    check_env(cfg, out)
     bs = args.batch_size or cfg["batch_size"]
     primary, anchor = cfg["primary_concept"], cfg["anchor_model"]
     screen_cfg = {**cfg, "concepts": [primary, *cfg["control_candidates"]]}

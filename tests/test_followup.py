@@ -64,3 +64,9 @@ def test_outcome_rule():
     assert outcome({"a": sup, "b": fal}) == "MIXED"
     assert outcome({"a": fal, "b": inc}) == "MIXED"
     assert outcome({"a": dict(verdict="SUPPORTED", survives=False), "b": sup}) == "MIXED"  # uninformative control
+
+
+def test_every_candidate_is_pinned():
+    revs = CFG["revisions"]
+    for m in [CFG["anchor_model"], *CFG["second_family_candidates"]]:
+        assert len(revs[m]) == 40 and all(c in "0123456789abcdef" for c in revs[m]), m

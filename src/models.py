@@ -23,14 +23,16 @@ def pick_dtype(name: str, device: torch.device) -> torch.dtype:
     return torch.float32 if device.type == "cpu" else dtype
 
 
-def load_model(name: str, device: torch.device, dtype: torch.dtype, texts: list[str] | None = None):
+def load_model(name: str, device: torch.device, dtype: torch.dtype, texts: list[str] | None = None,
+               revision: str | None = None):
+    """revision: Hugging Face commit SHA for weights and tokenizer; None = latest (pilot behaviour)."""
     if name == TINY:
         model, tok = build_tiny_random(texts)
     else:
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        tok = AutoTokenizer.from_pretrained(name, use_fast=True)
-        model = AutoModelForCausalLM.from_pretrained(name, dtype=dtype)
+        tok = AutoTokenizer.from_pretrained(name, use_fast=True, revision=revision)
+        model = AutoModelForCausalLM.from_pretrained(name, dtype=dtype, revision=revision)
     if not tok.is_fast:
         raise ValueError(f"{name}: a fast tokenizer is required (offset mapping locates the kin-term token)")
     if tok.pad_token_id is None:

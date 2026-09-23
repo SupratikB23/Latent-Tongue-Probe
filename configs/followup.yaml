@@ -15,6 +15,12 @@ second_family_candidates:              # stage 1: first to pass the gate on side
   - Qwen/Qwen3-1.7B-Base
   - Qwen/Qwen2.5-1.5B
   - ai-forever/mGPT
+revisions:                             # Hugging Face commit for weights + tokenizer (Amendment F1, results/followup_prereg.md)
+  bigscience/bloom-1b7: cc72a88036c2fb937d65efeacc57a0c2ef5d6fe5
+  Qwen/Qwen3-1.7B-Base: ea980cb0a6c2ae4b936e82123acc929f1cec04c1
+  Qwen/Qwen2.5-1.5B: 8faed761d45a263340a0528343f099c05c9a4323
+  ai-forever/mGPT: 40897bd7c8b47a76802c411108ca6220438b8b40
+env_lock: env/followup_lock.txt        # pip freeze of the GPU PC .venv; followup.py stops if the environment differs
 
 readout: pair_acc
 primary_concept: side_aunt

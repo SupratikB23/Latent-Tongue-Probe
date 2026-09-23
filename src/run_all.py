@@ -19,6 +19,7 @@ import time
 import numpy as np
 import pandas as pd
 import torch
+import transformers
 from tqdm import tqdm
 
 import analyze
@@ -115,7 +116,9 @@ def run_probes(X, meta, train, test, cfg, model_name, seed, n_layers, abl_layers
 def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device, dtype, batch_size: int,
               baseline_only: bool = False) -> None:
     t_model = time.time()
-    model, tok = load_model(name, device, dtype, texts=[it["text"] + a for it in items for a in it["answers"]])
+    revision = cfg.get("revisions", {}).get(name)
+    model, tok = load_model(name, device, dtype, texts=[it["text"] + a for it in items for a in it["answers"]],
+                            revision=revision)
     n_layers = len(get_blocks(model))
     d_model = model.config.hidden_size
     acfg = cfg["ablation"]
@@ -128,13 +131,14 @@ def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device,
     cache = resolve(cfg["cache_dir"]) / slug(name)
     cache.mkdir(parents=True, exist_ok=True)
     ids = [it["id"] for it in items]
-    acts = cached(cache / "activations.pt", ids, lambda: extract(model, tok, items, device, batch_size), str(dtype))
+    tag = str(dtype) if revision is None else f"{dtype}@{revision}"  # pilot caches keep their dtype-only tag
+    acts = cached(cache / "activations.pt", ids, lambda: extract(model, tok, items, device, batch_size), tag)
     X = acts["kin"].numpy()
     lang_mean_np = {k: v.numpy().astype(np.float64) for k, v in acts["lang_mean"].items()}
     sset = ScoringSet(tok, items)
     base_logp = cached(cache / "baseline_logp.pt", ids,
                        lambda: {"ids": ids, "logp": torch.from_numpy(score(model, sset, device, batch_size))},
-                       str(dtype))
+                       tag)
     base_logp = base_logp["logp"].numpy()
     if baseline_only:
         print(f"{name}: baseline cached -> {cache}  (inspect with: python src/diagnose_baseline.py)")
@@ -189,10 +193,11 @@ def run_model(name: str, cfg: dict, items: list[dict], seeds: list[int], device,
         pd.DataFrame(erasure_rows).to_csv(out / "erasure.csv", index=False)
         with open(out / "run_meta.json", "w", encoding="utf-8") as f:
             json.dump({
-                "model": name, "seed": seed, "n_layers": n_layers, "d_model": d_model, "primary_layer": primary,
+                "model": name, "revision": revision, "seed": seed, "n_layers": n_layers, "d_model": d_model, "primary_layer": primary,
                 "ablation_layers": abl_layers, "device": str(device), "dtype": str(dtype),
                 "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None,
-                "torch": torch.__version__, "python": platform.python_version(),
+                "torch": torch.__version__, "transformers": transformers.__version__,
+                "python": platform.python_version(),
                 "seed_seconds": round(time.time() - t_seed, 1), "model_seconds_so_far": round(time.time() - t_model, 1),
             }, f, indent=2)
         print(f"{name} seed {seed}: {time.time() - t_seed:.0f}s -> {out}")
