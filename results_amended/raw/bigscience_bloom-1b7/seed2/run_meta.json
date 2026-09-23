@@ -1,0 +1,28 @@
+{
+  "model": "bigscience/bloom-1b7",
+  "seed": 2,
+  "n_layers": 24,
+  "d_model": 2048,
+  "primary_layer": 12,
+  "ablation_layers": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22
+  ],
+  "device": "cuda",
+  "dtype": "torch.bfloat16",
+  "gpu": "NVIDIA GeForce RTX 3070",
+  "torch": "2.7.0+cu126",
+  "python": "3.11.9",
+  "seed_seconds": 623.9,
+  "model_seconds_so_far": 1893.9
+}

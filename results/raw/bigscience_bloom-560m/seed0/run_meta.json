@@ -1,0 +1,27 @@
+{
+  "model": "bigscience/bloom-560m",
+  "seed": 0,
+  "n_layers": 24,
+  "d_model": 1024,
+  "primary_layer": 12,
+  "ablation_layers": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22
+  ],
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce RTX 3070",
+  "torch": "2.7.0+cu126",
+  "python": "3.11.9",
+  "seed_seconds": 476.8,
+  "model_seconds_so_far": 637.7
+}
